@@ -18,10 +18,10 @@ from telegram.ext import (
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# ----------- ১. ফ্লাস্ক সার্ভার -----------
+# ----------- ১. ফ্লাস্ক সার্ভার (Render এ সচল রাখার জন্য) -----------
 app = Flask('')
 @app.route('/')
-def home(): return "Scanner is Live!"
+def home(): return "Scanner is Online!"
 
 def run():
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
@@ -32,11 +32,10 @@ def keep_alive():
 # ----------- ২. কনফিগারেশন -----------
 BOT_TOKEN = "8646130891:AAER7aF5CdKSL_5Ds1EhWK9MqnoFWnnli1I"
 
-# সেশন মেইনটেইন করার জন্য requests.Session() ব্যবহার করছি
+# সেশন মেইনটেইন করার জন্য
 session = requests.Session()
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
     "Referer": "https://billpay.sonalibank.com.bd/XIClassAdmission/Fee/"
 }
 
@@ -105,18 +104,19 @@ async def run_search(update_or_query, context, s_r, e_r):
     msg_source = update_or_query.message if hasattr(update_or_query, 'message') else update_or_query
     status_msg = await msg_source.reply_text("⏳ <b>Scanning...</b>", parse_mode="HTML")
     
+    # বর্তমান সার্চের শেষ রোল নম্বর সেভ রাখা (নেক্সট ৫০০ এর জন্য)
+    context.user_data["current_end"] = e_r
+    
     found_students = 0
     total_range = e_r - s_r + 1
     
     for i, roll in enumerate(range(s_r, e_r + 1), 1):
         try:
-            # সার্চ করার আগে একবার মেইন পেজ হিট করা যাতে সেশন থাকে
             if i == 1: session.get("https://billpay.sonalibank.com.bd/XIClassAdmission/Fee/", headers=headers, verify=False)
             
             search_url = f"https://billpay.sonalibank.com.bd/XIClassAdmission/Home/Search?searchStr={roll}"
             r = session.get(search_url, headers=headers, timeout=10, verify=False)
             
-            # Voucher ID খোঁজার জন্য আরও উদার রেজক্স
             ids = re.findall(r'Voucher/([A-Za-z0-9\-]+)', r.text)
             
             if ids:
@@ -136,16 +136,16 @@ async def run_search(update_or_query, context, s_r, e_r):
                         found_students += 1
                         await process_student_results(update_or_query, student_map[key])
 
-            if i % 2 == 0 or i == total_range:
+            if i % 5 == 0 or i == total_range:
                 await status_msg.edit_text(f"⏳ <b>Processing XI Admission</b>\n🔢 Roll: {roll}\n📊 Found: {found_students}\n✅ Progress: {i}/{total_range}", parse_mode="HTML")
-            await asyncio.sleep(0.1) # সাইটের ওপর প্রেশার কমাতে সামান্য বিরতি
+            await asyncio.sleep(0.1)
         except: continue
 
     await status_msg.delete()
     await msg_source.reply_text(f"✅ Done!\n📊 Found Students: {found_students}", 
                                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("👉 Next 500?", callback_data="next_500")]]))
 
-# (হ্যান্ডলার পার্ট)
+# ----------- ৬. হ্যান্ডলারস -----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("XI Class Admission Fee Scanner!", 
                                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Start Search", callback_data="btn_ready")]]))
@@ -162,7 +162,16 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    if query.data == "btn_ready": await query.message.reply_text("🚀 রোল পাঠান।")
+    
+    if query.data == "btn_ready":
+        await query.message.reply_text("🚀 রোল বা রেঞ্জ পাঠান (উদা: 556798-556800)")
+    
+    elif query.data == "next_500":
+        last_end = context.user_data.get("current_end", 0)
+        if last_end > 0:
+            await run_search(query, context, last_end + 1, last_end + 500)
+        else:
+            await query.message.reply_text("❌ কোনো আগের সার্চ পাওয়া যায়নি। নতুন করে রোল লিখুন।")
 
 if __name__ == "__main__":
     keep_alive()
@@ -170,4 +179,5 @@ if __name__ == "__main__":
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(callback_handler))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    print("🚀 Final Fixed Bot is Starting...")
     application.run_polling()
