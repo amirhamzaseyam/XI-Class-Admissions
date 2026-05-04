@@ -16,18 +16,22 @@ from telegram.ext import (
     CallbackQueryHandler
 )
 
+# SSL ওয়ার্নিং বন্ধ করার জন্য
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ----------- ১. ফ্লাস্ক সার্ভার (Render এ সচল রাখার জন্য) -----------
 app = Flask('')
 @app.route('/')
-def home(): return "Scanner is Online!"
+def home(): return "Scanner is Online & Telegram Button Added!"
 
 def run():
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+    # রেন্ডার পোর্টের জন্য এনভায়রনমেন্ট ভেরিয়েবল চেক
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port)
 
 def keep_alive():
-    Thread(target=run).start()
+    t = Thread(target=run)
+    t.start()
 
 # ----------- ২. কনফিগারেশন -----------
 BOT_TOKEN = "8646130891:AAER7aF5CdKSL_5Ds1EhWK9MqnoFWnnli1I"
@@ -69,7 +73,7 @@ def get_data(tid):
         return d
     except: return None
 
-# ----------- ৪. রেজাল্ট প্রসেসর -----------
+# ----------- ৪. রেজাল্ট প্রসেসর (WhatsApp + Telegram বাটন সহ) -----------
 async def process_student_results(update_or_query, data_list):
     msg_source = update_or_query.message if hasattr(update_or_query, 'message') else update_or_query
     final_output = "📄 <b>XI Admission Fee Result</b>\n\n"
@@ -90,12 +94,19 @@ async def process_student_results(update_or_query, data_list):
             f"Date: {data['date']}"
             f"</pre>\n\n"
         )
+        # নাম্বার ফরম্যাট ঠিক করা
         p = data["contact"].strip()[-11:]
         if len(p) >= 11 and p not in phones: phones.append(p)
 
     keyboard = []
     for ph in phones:
-        keyboard.append([InlineKeyboardButton("📱 WhatsApp", url=f"https://wa.me/88{ph}")])
+        # বাংলাদেশের কান্ট্রি কোড সহ লিঙ্ক
+        full_phone = f"88{ph}"
+        # হোয়াটসঅ্যাপ এবং টেলিগ্রাম বাটন পাশাপাশি
+        keyboard.append([
+            InlineKeyboardButton("🟢 WhatsApp", url=f"https://wa.me/{full_phone}"),
+            InlineKeyboardButton("🔵 Telegram", url=f"https://t.me/+{full_phone}")
+        ])
     
     await msg_source.reply_text(final_output, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard) if keyboard else None)
 
@@ -104,9 +115,7 @@ async def run_search(update_or_query, context, s_r, e_r):
     msg_source = update_or_query.message if hasattr(update_or_query, 'message') else update_or_query
     status_msg = await msg_source.reply_text("⏳ <b>Scanning...</b>", parse_mode="HTML")
     
-    # বর্তমান সার্চের শেষ রোল নম্বর সেভ রাখা (নেক্সট ৫০০ এর জন্য)
     context.user_data["current_end"] = e_r
-    
     found_students = 0
     total_range = e_r - s_r + 1
     
@@ -179,5 +188,5 @@ if __name__ == "__main__":
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(callback_handler))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    print("🚀 Final Fixed Bot is Starting...")
+    print("🚀 Full & Final Bot Started with Telegram Button Added ✅")
     application.run_polling()
