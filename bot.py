@@ -30,8 +30,9 @@ def run():
 def keep_alive():
     t = Thread(target=run)
     t.start()
-
-
+   
+# টোকেন
+BOT_TOKEN = "8646130891:AAEfqUkfsOIOgCq66y3Yl5IBX3Tt-6RSG4s"
 
 session = requests.Session()
 headers = {
