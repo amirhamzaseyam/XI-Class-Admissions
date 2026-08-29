@@ -32,7 +32,7 @@ def keep_alive():
     t.start()
    
 # টোকেন
-BOT_TOKEN = "8646130891:AAEfqUkfsOIOgCq66y3Yl5IBX3Tt-6RSG4s"
+BOT_TOKEN = "8646130891:AAHBCFBAm2-vuKUbW5zW3LhqQ3cxD615dPE"
 
 session = requests.Session()
 headers = {
