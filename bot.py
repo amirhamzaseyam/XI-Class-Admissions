@@ -30,21 +30,21 @@ def run():
 def keep_alive():
     t = Thread(target=run)
     t.start()
-   
+
 # টোকেন
-BOT_TOKEN = "8646130891:AAHBCFBAm2-vuKUbW5zW3LhqQ3cxD615dPE"
+BOT_TOKEN = "8638614270:AAH4odMgLargbr0R64vk1yzwF96i0ztb6iY"
 
 session = requests.Session()
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Referer": "https://billpay.sonalibank.com.bd/XIClassAdmission/Fee/"
+    "Referer": "https://billpay.sonalibank.com.bd/BoardRescrutiny/Fee/"
 }
 
 # --- ১. এটি আপনার স্টপ সিস্টেমের জন্য নতুন ভেরিয়েবল ---
 current_search_id = 0
 
 def get_data(tid):
-    url = f"https://billpay.sonalibank.com.bd/XIClassAdmission/Home/Voucher/{tid}"
+    url = f"https://billpay.sonalibank.com.bd/BoardRescrutiny/Home/Voucher/{tid}"
     try:
         r = session.get(url, headers=headers, timeout=15, verify=False)
         soup = BeautifulSoup(r.text, "html.parser")
