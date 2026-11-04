@@ -67,9 +67,9 @@ headers = {
 # কনভারসেশন স্টেটস
 SELECTING_BOARD, GETTING_INSTITUTION, GETTING_ROLL = range(3)
 
-# ১১টি শিক্ষা বোর্ডের তালিকা
+# ১১টি শিক্ষা বোর্ডের তালিকা (Chattogram আপডেট করা হলো)
 BOARDS = [
-    "Dhaka Board", "Barisal Board", "Chittagong Board", 
+    "Dhaka Board", "Barisal Board", "Chattogram Board", 
     "Comilla Board", "Dinajpur Board", "Jessore Board", 
     "Mymensingh Board", "Rajshahi Board", "Sylhet Board", 
     "Madrasah Board", "BTEB"
@@ -181,8 +181,6 @@ async def run_search(update_or_query, context, s_r, e_r):
     status_msg = await msg_source.reply_text("⏳ <b>Scanning...</b>", parse_mode="HTML")
     context.user_data["current_end"] = e_r
     
-    selected_board_full = context.user_data.get("selected_board", "").upper()
-    selected_board_keyword = selected_board_full.split()[0] if selected_board_full else ""
     institution_name = context.user_data.get("institution_name", "N/A")
     
     found_students = 0
@@ -193,6 +191,9 @@ async def run_search(update_or_query, context, s_r, e_r):
             return 
 
         try:
+            if i == 1:
+                session.get(BASE_URL + "/BoardRescrutiny/Home/Search", headers=headers, verify=False)
+            
             search_url = f"{SEARCH_URL}?searchStr={roll}"
             r = session.get(search_url, headers=headers, timeout=12, verify=False)
             ids = re.findall(r'/BoardRescrutiny/Home/Voucher/([A-Za-z0-9_-]+)', r.text, re.I)
@@ -202,10 +203,7 @@ async def run_search(update_or_query, context, s_r, e_r):
                 for tid in set(ids):
                     d = get_data(tid)
                     if d and d["name"] != "N/A":
-                        server_board = d["board"].upper()
-                        # বোর্ড ফিল্টারিং লজিক
-                        if not server_board or server_board == "N/A" or selected_board_keyword in server_board or server_board in selected_board_keyword:
-                            v_list.append(d)
+                        v_list.append(d)
                 if v_list:
                     found_students += 1
                     await process_student_results(update_or_query, v_list, institution_name)
