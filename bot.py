@@ -67,7 +67,7 @@ headers = {
 # কনভারসেশন স্টেটস
 SELECTING_BOARD, GETTING_INSTITUTION, GETTING_ROLL = range(3)
 
-# ১১টি শিক্ষা বোর্ডের তালিকা (Chattogram আপডেট করা হলো)
+# ১১টি শিক্ষা বোর্ডের তালিকা
 BOARDS = [
     "Dhaka Board", "Barisal Board", "Chattogram Board", 
     "Comilla Board", "Dinajpur Board", "Jessore Board", 
@@ -171,7 +171,7 @@ async def process_student_results(update_or_query, data_list, institution_name):
 
 
 # ==============================
-# SCANNER LOGIC
+# SCANNER LOGIC (WITH PROPER BOARD FILTER)
 # ==============================
 async def run_search(update_or_query, context, s_r, e_r):
     global current_search_id
@@ -181,6 +181,8 @@ async def run_search(update_or_query, context, s_r, e_r):
     status_msg = await msg_source.reply_text("⏳ <b>Scanning...</b>", parse_mode="HTML")
     context.user_data["current_end"] = e_r
     
+    selected_board_full = context.user_data.get("selected_board", "").upper()
+    selected_board_keyword = selected_board_full.split()[0] if selected_board_full else ""
     institution_name = context.user_data.get("institution_name", "N/A")
     
     found_students = 0
@@ -203,7 +205,10 @@ async def run_search(update_or_query, context, s_r, e_r):
                 for tid in set(ids):
                     d = get_data(tid)
                     if d and d["name"] != "N/A":
-                        v_list.append(d)
+                        server_board = d["board"].upper()
+                        # সঠিক বোর্ড ফিল্টারিং লজিক (সিলেক্ট করা বোর্ডের সাথে সার্ভারের বোর্ড মিলতে হবে)
+                        if not server_board or server_board == "N/A" or selected_board_keyword in server_board or server_board in selected_board_keyword:
+                            v_list.append(d)
                 if v_list:
                     found_students += 1
                     await process_student_results(update_or_query, v_list, institution_name)
